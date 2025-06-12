@@ -647,6 +647,51 @@ LogicalResult verifyInputType(const CompilerOptions &options, InputType inType)
     return success();
 }
 
+extern llvm::ModulePass *createFuelRTSigLLVMPass();
+
+LogicalResult runFuelRTSigPasses(const CompilerOptions &options,
+                                 std::shared_ptr<llvm::Module> llvmModule, 
+                                 CompilerOutput &output)
+{
+    llvm::errs() << "=== FUEL RTSIG: Starting runFuelRTSigPasses function ===\n";
+    llvm::errs().flush();  // Force immediate output
+
+    llvm::errs() << "=== FUEL RTSIG: About to create PassManager ===\n";
+    
+    // Create pass manager
+    llvm::legacy::PassManager PM;
+    
+    llvm::errs() << "=== FUEL RTSIG: About to create fuel pass ===\n";
+    
+    // Add your fuel pass
+    llvm::ModulePass *fuelPass = createFuelRTSigLLVMPass();
+    if (!fuelPass) {
+        llvm::errs() << "=== FUEL RTSIG: ERROR - createFuelRTSigLLVMPass returned nullptr ===\n";
+        return failure();
+    }
+    
+    llvm::errs() << "=== FUEL RTSIG: Adding fuel pass to manager ===\n";
+    PM.add(fuelPass);
+    
+    llvm::errs() << "=== FUEL RTSIG: About to run pass manager ===\n";
+    
+    // Run the pass
+    bool passModified = PM.run(*llvmModule.get());
+    
+    llvm::errs() << "=== FUEL RTSIG: Pass manager completed, modified=" << passModified << " ===\n";
+
+    if (options.keepIntermediate) {
+        std::string tmp;
+        llvm::raw_string_ostream rawStringOstream{tmp};
+        llvmModule->print(rawStringOstream, nullptr);
+        auto outFile = output.nextPipelineDumpFilename("FuelRTSig", ".ll");
+        dumpToFile(options, outFile, tmp);
+    }
+
+    llvm::errs() << "=== FUEL RTSIG: runFuelRTSigPasses completed successfully ===\n";
+    return success();
+}
+
 LogicalResult QuantumDriverMain(const CompilerOptions &options, CompilerOutput &output,
                                 DialectRegistry &registry)
 {
@@ -811,6 +856,15 @@ LogicalResult QuantumDriverMain(const CompilerOptions &options, CompilerOutput &
             enzymePassesTiming.stop();
             catalyst::utils::LinesCount::Module(*llvmModule.get());
         }
+
+        // ADD YOUR FUEL PASS HERE:
+        TimingScope fuelPassesTiming = llcTiming.nest("Fuel RT Signature passes");
+        if (failed(timer::timer(runFuelRTSigPasses, "runFuelRTSigPasses", /* add_endl */ false,
+                                options, llvmModule, output))) {
+            return failure();
+        }
+        fuelPassesTiming.stop();
+        catalyst::utils::LinesCount::Module(*llvmModule.get());
 
         std::string errorMessage;
         auto outfile = openOutputFile(output.outputFilename, &errorMessage);

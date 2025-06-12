@@ -282,4 +282,13 @@ def BufferDeallocation : Pass<"buffer-deallocation", "func::FuncOp"> {
   let constructor = "mlir::bufferization::createBufferDeallocationPass()";
 }
 
+def FuelRTSigPass : Pass<"fuel-rt-sig", "mlir::ModuleOp"> {
+  let summary = "Instrument code with fuel tracking and runtime signatures";
+  let description = [{
+    This pass instruments MLIR operations with fuel cost tracking and 
+    runtime signature generation for execution monitoring.
+  }];
+  let constructor = "catalyst::createFuelRTSigPass()";
+}
+
 #endif // CATALYST_PASSES

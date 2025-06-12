@@ -51,6 +51,7 @@ add_mlir_library(CatalystCompilerDriver
     CompilerDriver.cpp
     CatalystLLVMTarget.cpp
     Pipelines.cpp
+    FuelRTSigLLVMPass.cpp
 
     LINK_LIBS PRIVATE
     ${LIBS}

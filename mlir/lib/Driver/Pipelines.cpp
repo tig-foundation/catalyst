@@ -64,6 +64,9 @@ void createQuantumCompilationPipeline(OpPassManager &pm)
     pm.addPass(catalyst::createGradientLoweringPass());
     pm.addPass(catalyst::createAdjointLoweringPass());
     pm.addPass(catalyst::createDisableAssertionPass());
+    
+    // Add fuel instrumentation pass BEFORE quantum operations get lowered
+    //pm.addPass(catalyst::createFuelRTSigPass());
 }
 void createBufferizationPipeline(OpPassManager &pm)
 {
